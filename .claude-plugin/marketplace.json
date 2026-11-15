@@ -1,0 +1,14 @@
+{
+  "name": "winegrowers",
+  "description": "ワイン生産者のコモンズ：畑・栽培のスキル。ground（commons-ground/ground）の上に乗せて使う",
+  "owner": {
+    "name": "commons-ground 参加者"
+  },
+  "plugins": [
+    {
+      "name": "grape",
+      "source": "./plugins/grape",
+      "description": "畑・栽培：防除の計画と記録の点検（spray-plan、海外の農業スキル集への上乗せ）、ビンテージの気象と総評（vintage-summary）、地形の読み方と冷気の流れ（terrain-reading、海外の農業スキル集への上乗せ）"
+    }
+  ]
+}

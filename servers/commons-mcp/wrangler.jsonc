@@ -1,0 +1,7 @@
+{
+  "name": "winegrowers-commons-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "8caae741d844422195fe7ae3b3233e07" }]
+}
