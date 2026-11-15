@@ -7,6 +7,8 @@
 | `plugins/grape` | 畑・栽培：防除の計画と記録の点検、ビンテージの気象と総評、地形と冷気の流れ |
 | `servers/commons-mcp` | 知識コモンズ（Notion）への入口。参加者の Claude から知識コモンズを読み書きする。くわしくは [知識コモンズ](docs/knowledge-commons.md) |
 
+はじめての人は [入口のページ](https://commons-ground.github.io/ground/) から。
+
 コモンズ全体の仕組み（土台のコモンズと個別のコモンズ、使い方、直し方）は ground の [コモンズのしくみ](https://github.com/commons-ground/ground/blob/main/docs/how-commons-work.md) にあります。プラグインと表の設計図は [docs/plugins-and-schemas.md](docs/plugins-and-schemas.md)。
 
 ## 入れ方
