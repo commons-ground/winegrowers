@@ -5,6 +5,7 @@
 | 置き場 | 中身 |
 | --- | --- |
 | `plugins/grape` | 畑・栽培：防除の計画と記録の点検、ビンテージの気象と総評、地形と冷気の流れ |
+| `plugins/bottle` | 瓶詰め後・販売：ワインの写真から、畑・年の天候・醸造・等級・造り手を生産者の目で読み解く |
 | `servers/commons-mcp` | 知識コモンズ（Notion）への入口。参加者の Claude から知識コモンズを読み書きする。くわしくは [知識コモンズ](docs/knowledge-commons.md) |
 
 はじめての人は [入口のページ](https://commons-ground.github.io/ground/) から。
@@ -20,6 +21,7 @@ Claude Code では次のとおりです。
 ```
 /plugin install core --marketplace commons-ground/ground
 /plugin install grape --marketplace commons-ground/winegrowers
+/plugin install bottle --marketplace commons-ground/winegrowers
 ```
 
 ## 直し方
