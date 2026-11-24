@@ -6,7 +6,8 @@ name: discord-ai
 
 on:
   repository_dispatch:
-    types: [discord-interaction]
+    # discord-interaction は /ai、discord-mention は @コモンズのAI（ground の中継が見つけて送る）
+    types: [discord-interaction, discord-mention]
 
 permissions:
   contents: read
