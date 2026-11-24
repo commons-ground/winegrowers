@@ -1,0 +1,28 @@
+name: 提案（篩にかける）
+description: スキル・ルール・道具への提案。篩の係（AI）が、重なりをまとめ、影響の大きさで振り分けて運びます
+title: "〔提案〕"
+labels: ["篩"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ここは公開の場所です。人名・金額・取引先・住所・各自の Notion や Drive の URL は書かないでください。
+        短くてかまいません。足りないところは篩の係が聞くか、書き直します。
+  - type: textarea
+    id: scene
+    attributes:
+      label: どんな場面で、何が困るか
+      placeholder: 例）給与の記録を作るとき、繰越の行まで作り直そうとして毎回止める
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: どう直したいか
+      placeholder: 例）payroll-record の手順2で、状態が「繰越」の行を飛ばす
+    validations:
+      required: true
+  - type: textarea
+    id: who
+    attributes:
+      label: 困るかもしれない人（分からなければ空でよい）
