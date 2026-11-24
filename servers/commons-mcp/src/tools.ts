@@ -42,6 +42,7 @@ export type DiscordConfig = {
   guildId?: string;
   channels?: string[];
   me?: { userId: string; aiRoleId?: string }; // つないでいる人の Discord ID と、その人の AI 用ロール
+  aiRoleIds?: string[]; // 参加者全員の AI 用ロール（書き込みで呼び出してよいロール）
 };
 
 export function buildServer(token: string, author: string, discordConfig: DiscordConfig = {}): McpServer {
@@ -219,7 +220,7 @@ export function buildServer(token: string, author: string, discordConfig: Discor
   );
 
   if (discordConfig.token && discordConfig.guildId) {
-    registerDiscordTools(server, discordConfig.token, discordConfig.guildId, author, discordConfig.channels, discordConfig.me);
+    registerDiscordTools(server, discordConfig.token, discordConfig.guildId, author, discordConfig.channels, discordConfig.me, discordConfig.aiRoleIds);
   }
 
   return server;

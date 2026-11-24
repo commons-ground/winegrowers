@@ -215,6 +215,7 @@ const apiHandler = {
         guildId: env.DISCORD_GUILD_ID,
         channels: (env.DISCORD_CHANNELS ?? "").split(","),
         me: props?.discordId ? { userId: props.discordId, aiRoleId: aiRoles[props.discordId] } : undefined,
+        aiRoleIds: Object.values(aiRoles),
       }), { route: "/mcp" });
     return handler(req, env, ctx);
   },
