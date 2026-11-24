@@ -11,6 +11,7 @@ import {
   signatureBlock,
   titleOf,
 } from "./notion";
+import { registerDiscordTools } from "./discord";
 
 type Text = { content: { type: "text"; text: string }[]; isError?: boolean };
 const ok = (text: string): Text => ({ content: [{ type: "text", text }] });
@@ -36,12 +37,14 @@ const guard =
 const READ = { readOnlyHint: true, openWorldHint: false } as const;
 const WRITE = { readOnlyHint: false, destructiveHint: false, openWorldHint: false } as const;
 
-export function buildServer(token: string, author: string): McpServer {
+export type DiscordConfig = { token?: string; guildId?: string };
+
+export function buildServer(token: string, author: string, discordConfig: DiscordConfig = {}): McpServer {
   const server = new McpServer(
     { name: "winegrowers-commons-notion", version: "0.1.0" },
     {
       instructions:
-        "Winegrowers Commons の共有 Notion（知識コモンズ）を読み書きする。ここは複数のワイン生産者の共有の場なので、事業データ（人名・金額・口座・住所・取引先・各自の Notion の URL）は書かない。書き込むと末尾に書いた人の名前が自動で付く。",
+        "Winegrowers Commons の共有 Notion（知識コモンズ）と Discord を読み書きする。ここは複数のワイン生産者の共有の場なので、事業データ（人名・金額・口座・住所・取引先・各自の Notion の URL）は書かない。書き込むと末尾に書いた人の名前が自動で付く。",
     },
   );
 
@@ -209,6 +212,10 @@ export function buildServer(token: string, author: string): McpServer {
       return ok("コメントしました。");
     }),
   );
+
+  if (discordConfig.token && discordConfig.guildId) {
+    registerDiscordTools(server, discordConfig.token, discordConfig.guildId, author);
+  }
 
   return server;
 }

@@ -2,6 +2,7 @@
 // - 認証：OAuth（claude.ai のカスタムコネクタが求める形）。本人確認は「参加者コード」で行う。
 // - 参加者コード → 名前の対応は Worker の secret（MEMBER_CODES）にだけ置く。リポジトリには置かない。
 // - Notion へは内部インテグレーションのトークン（NOTION_TOKEN）で読み書きする。
+// - Discord へはボットの鍵（DISCORD_BOT_TOKEN）で読み書きする。鍵が無いあいだは Discord の道具を出さない。
 
 import { AuthorizationError, OAuthProvider } from "@cloudflare/workers-oauth-provider";
 import { createMcpHandler } from "agents/mcp/server";
@@ -13,6 +14,8 @@ export interface Env {
   NOTION_TOKEN: string;
   MEMBER_CODES: string; // JSON: {"参加者コード": "表示名"}
   PUBLIC_URL?: string;
+  DISCORD_BOT_TOKEN?: string; // ボット「コモンズのAI」の鍵（secret）
+  DISCORD_GUILD_ID?: string; // コモンズの Discord サーバーのID（変数）
 }
 
 type Props = { name: string };
@@ -123,7 +126,10 @@ const authHandler = {
 const apiHandler = {
   fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const name = (ctx.props as Props | undefined)?.name ?? "不明な参加者";
-    const handler = createMcpHandler(() => buildServer(env.NOTION_TOKEN, name), { route: "/mcp" });
+    const handler = createMcpHandler(() => buildServer(env.NOTION_TOKEN, name, {
+        token: env.DISCORD_BOT_TOKEN,
+        guildId: env.DISCORD_GUILD_ID,
+      }), { route: "/mcp" });
     return handler(req, env, ctx);
   },
 };
