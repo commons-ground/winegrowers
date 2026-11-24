@@ -1,0 +1,30 @@
+# このリポジトリの Issue・プルリクエストで @claude と書くと、コモンズの AI が答える。
+# Discord の /ai と同じ AI（ふるまいは discord/member.md、覚えていることは discord/memory.md）。
+# 本体は commons-ground/ground の github-ai-member.yml。仕組みは ground の tools/ai-member/README.md。
+# 鍵は secrets の ANTHROPIC_API_KEY にだけ置く。
+name: github-ai
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+  actions: read
+
+jobs:
+  reply:
+    uses: commons-ground/ground/.github/workflows/github-ai-member.yml@main
+    with:
+      member_dir: discord
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
