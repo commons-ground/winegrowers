@@ -12,11 +12,24 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft
     runs-on: ubuntu-latest
     steps:
+      - name: 鍵を持って動く仕組みや AI のふるまいに触れていれば、ラベル「人の確認」を自動で付ける
+        id: guard
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.html_url }}
+        run: |
+          # workflow、コネクタのサーバー、AI のふるまい・覚えていること（discord/*.md）、このリポジトリの変え方
+          HIT=$(gh pr view "$PR" --json files -q '.files[].path' | grep -E '^(\.github/workflows/|servers/|discord/[^/]+\.md$|CLAUDE\.md$)' || true)
+          if [ -n "$HIT" ]; then
+            printf '人の確認が要るファイル：\n%s\n' "$HIT"
+            gh pr edit "$PR" --add-label "人の確認" || true
+            echo "hold=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: 自動マージを予約する（ラベル「人の確認」があれば外す）
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.html_url }}
-          HOLD: ${{ contains(github.event.pull_request.labels.*.name, '人の確認') }}
+          HOLD: ${{ contains(github.event.pull_request.labels.*.name, '人の確認') || steps.guard.outputs.hold == 'true' }}
         run: |
           if [ "$HOLD" = "true" ]; then
             gh pr merge --disable-auto "$PR" || true
