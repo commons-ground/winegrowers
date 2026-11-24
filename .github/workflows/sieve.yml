@@ -1,12 +1,12 @@
 # 篩（ふるい）：提案を、まとめて・一般化して・影響で振り分けてから入れる。
-# 起きるのは出来事のときだけ：Discord の /propose・「Propose to Commons」（受け口から sieve-intake）、
+# 起きるのは出来事のときだけ：Discord の /propose・「コモンズに提案」（受け口から discord-propose。#提案 に載せる仕事と同時に動く）、
 # 提案の Issue を作る、篩のカードにコメントする。定期実行は使わない。
 # 本体は commons-ground/ground の sieve.yml。仕組みは ground の tools/sieve/README.md、設計は docs/sieve.md。
 name: sieve
 
 on:
   repository_dispatch:
-    types: [sieve-intake]
+    types: [discord-propose]
   issues:
     types: [opened]
   issue_comment:
