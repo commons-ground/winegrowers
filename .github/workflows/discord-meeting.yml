@@ -1,0 +1,24 @@
+# Discord「Winegrowers Commons」の /録音 開始 を受けて、通話を録り、議事録と〔提案〕まで作る。
+# 受け口（Cloudflare Worker）→ repository_dispatch → ここ → ground の discord-meeting。
+# 仕組みは commons-ground/ground の tools/discord-meeting/README.md。
+name: discord-meeting
+
+on:
+  repository_dispatch:
+    types: [discord-record]
+
+concurrency:
+  group: discord-meeting
+
+permissions:
+  contents: read
+
+jobs:
+  meeting:
+    uses: commons-ground/ground/.github/workflows/discord-meeting.yml@main
+    with:
+      payload: ${{ toJSON(github.event.client_payload) }}
+      member_dir: discord
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
