@@ -7,5 +7,6 @@
   "history_messages": 20,
   "exclude_plugins": [],
   "proposal_channel": "提案",
-  "meeting_max_budget_usd": 1.0
+  "meeting_max_budget_usd": 1.0,
+  "minutes_channel": "議事録"
 }
