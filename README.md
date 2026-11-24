@@ -31,3 +31,5 @@ Claude Code では次のとおりです。
 ## 話す場所
 
 参加者どうしは Discord で話します。決まったこと・残す知識は Discord に置きっぱなしにせず、知識コモンズかこのリポジトリに移します。
+
+Discord の `#aiに聞く` などで `/ai 〇〇` と打つと、このリポジトリと ground のスキルを読んだ「コモンズのAI」が答えます。呼び名やふるまいは `discord/` に、仕組みは ground の [discord-ai-member](https://github.com/commons-ground/ground/tree/main/tools/discord-ai-member) にあります。

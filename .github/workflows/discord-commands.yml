@@ -1,0 +1,30 @@
+# Discord のサーバーに /ai コマンドを登録する。最初に1回、コマンドを変えたときにもう1回、手で動かす。
+name: discord-commands
+
+on:
+  workflow_dispatch:
+    inputs:
+      application_id:
+        description: Discord 開発者画面「一般情報」のアプリID
+        required: true
+      guild_id:
+        description: 登録するサーバーのID
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: commons-ground/ground
+          path: ground
+      - run: pip install requests
+      - env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          APPLICATION_ID: ${{ inputs.application_id }}
+          GUILD_ID: ${{ inputs.guild_id }}
+        run: python ground/tools/discord-ai-member/register.py

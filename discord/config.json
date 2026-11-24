@@ -1,0 +1,9 @@
+{
+  "name": "コモンズのAI",
+  "community": "Winegrowers Commons",
+  "model": "claude-sonnet-5-5",
+  "max_budget_usd": 0.5,
+  "max_turns": 30,
+  "history_messages": 20,
+  "exclude_plugins": []
+}
