@@ -4,7 +4,7 @@
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   // Discord で読み書きを許すチャンネル（名前のカンマ区切り）。その中のスレッドも使える
-  "vars": { "DISCORD_CHANNELS": "一般,スキルの相談,aiに聞く" },
+  "vars": { "DISCORD_CHANNELS": "一般,提案,スキルの相談,aiに聞く" },
   // 画面で入れた変数（DISCORD_GUILD_ID など）を deploy で消さない
   "keep_vars": true,
   "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "8caae741d844422195fe7ae3b3233e07" }]
