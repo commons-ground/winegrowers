@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:vivc.de)",
+      "WebFetch(domain:*.vivc.de)",
+      "WebFetch(domain:julius-kuehn.de)",
+      "WebFetch(domain:*.julius-kuehn.de)",
+      "WebFetch(domain:openagrar.de)",
+      "WebFetch(domain:*.openagrar.de)",
+      "WebFetch(domain:inrae.fr)",
+      "WebFetch(domain:*.inrae.fr)",
+      "WebFetch(domain:hs-geisenheim.de)",
+      "WebFetch(domain:*.hs-geisenheim.de)",
+      "WebFetch(domain:awri.com.au)",
+      "WebFetch(domain:*.awri.com.au)",
+      "WebFetch(domain:oeno-one.eu)",
+      "WebFetch(domain:*.oeno-one.eu)",
+      "WebFetch(domain:ives-openscience.eu)",
+      "WebFetch(domain:*.ives-openscience.eu)",
+      "WebFetch(domain:ajevonline.org)",
+      "WebFetch(domain:*.ajevonline.org)",
+      "WebFetch(domain:winery.or.jp)",
+      "WebFetch(domain:*.winery.or.jp)"
+    ]
+  }
+}
