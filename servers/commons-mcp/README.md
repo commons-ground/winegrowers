@@ -35,7 +35,9 @@ flowchart LR
 | discord_read | Discord のチャンネルの発言を読む。📌 の付いた発言だけにも絞れる |
 | discord_post | Discord に書き込む（ボット「コモンズのAI」の名前で、末尾に頼んだ人の名前が付く） |
 
-Discord の道具は、Worker に `DISCORD_BOT_TOKEN`（secret）と `DISCORD_GUILD_ID`（変数）があるときだけ出る。読み書きできるのはそのサーバーだけ。
+Discord の道具は、Worker に `DISCORD_BOT_TOKEN`（secret）と `DISCORD_GUILD_ID`（変数）があるときだけ出る。読み書きできるのはそのサーバーのうち、`wrangler.jsonc` の `DISCORD_CHANNELS` に書いたチャンネル（いまは #一般・#スキルの相談・#aiに聞く）と、その中のスレッドだけ。
+
+`discord_post` は書き込みの道具なので、Claude は使う前に毎回「許可しますか」と聞く（Claude の設定で「常に許可」にしない限り）。
 
 消す・アーカイブする道具は入れていない（戻せない操作は人が Notion の画面でする）。書き込みの末尾には、書いた人の名前が自動で付く（Notion 上の記録はすべて鍵の名前になるため）。
 
@@ -49,7 +51,8 @@ Discord の道具は、Worker に `DISCORD_BOT_TOKEN`（secret）と `DISCORD_GU
 3. 公開URLは自動で決まる（独自ドメインに置くときだけ `PUBLIC_URL` を変数で渡す）
 4. 鍵を Worker の secret に入れる（リポジトリには入れない）
    - `npx wrangler secret put NOTION_TOKEN`：Notion の「開発者ツール」→ コネクト「Commons MCP」の API トークン
-   - `npx wrangler secret put DISCORD_BOT_TOKEN`：Discord 開発者画面のボット「コモンズのAI」の鍵（任意。入れると Discord の道具が出る）
+   - `npx wrangler secret put DISCORD_BOT_TOKEN`：Discord 開発者画面のボット「コモンズのAI」の鍵（任意。入れると Discord の道具が出る。`/ai` で動いているボットと同じ鍵でよい）
+   - Cloudflare の画面で Worker の「設定」→「変数とシークレット」に、変数 `DISCORD_GUILD_ID`（コモンズの Discord サーバーのID）を足す
    - `npx wrangler secret put MEMBER_CODES`：`{"参加者コード":"表示名", …}` の JSON。参加者を足すときはこれを入れ直す
 5. `npm install && npx wrangler deploy`
 
