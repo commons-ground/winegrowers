@@ -179,6 +179,42 @@ export function registerDiscordTools(
   );
 
   server.registerTool(
+    "discord_edit",
+    {
+      title: "Discord の自分の書き込みを直す",
+      description:
+        "discord_post で自分（つないでいる人）が書いた発言を、新しい本文に置き換える。ほかの人やほかの参加者の Claude が書いた発言は直せない。" +
+        "1つの発言に収まる長さ（1900字まで）に限る。呼び出し（<@ID>・<@&AI用ロールID>）の扱いは discord_post と同じ。",
+      inputSchema: z.object({
+        channel: z.string().describe("チャンネル名（# なしでよい）かチャンネル・スレッドのID"),
+        message_id: z.string(),
+        text: z.string().min(1).max(MAX_LEN - 60),
+      }),
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+    },
+    async ({ channel, message_id, text }) => {
+      try {
+        const ch = await resolve(channel);
+        const sign = `\n-# ${author}（Claude 経由）`;
+        const m = await discord(token, "GET", `/channels/${ch.id}/messages/${message_id}`);
+        // ボットの発言で、末尾の署名がつないでいる人のものだけ直せる
+        if (!m.author?.bot || !String(m.content || "").endsWith(sign)) {
+          return fail("直せるのは、あなたが discord_post で書いた発言だけです。");
+        }
+        const users = [...new Set([...text.matchAll(/<@!?(\d+)>/g)].map((x) => x[1]))].slice(0, 100);
+        const roles = [...new Set([...text.matchAll(/<@&(\d+)>/g)].map((x) => x[1]))].filter((r) => aiRoleIds.includes(r));
+        await discord(token, "PATCH", `/channels/${ch.id}/messages/${message_id}`, {
+          content: `${text}${sign}`,
+          allowed_mentions: { parse: [], users, roles },
+        });
+        return ok(`#${ch.name} の発言を直しました。https://discord.com/channels/${guildId}/${ch.id}/${message_id}`);
+      } catch (e) {
+        return explain(e);
+      }
+    },
+  );
+
+  server.registerTool(
     "discord_inbox",
     {
       title: "Discord の自分宛て（受け取り箱）",
