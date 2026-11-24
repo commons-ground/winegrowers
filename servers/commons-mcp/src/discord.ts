@@ -46,6 +46,7 @@ export function registerDiscordTools(
   author: string,
   allowedNames: string[] = [],
   me?: { userId: string; aiRoleId?: string },
+  aiRoleIds: string[] = [],
 ): void {
   const allowed = new Set(allowedNames.map((n) => n.trim().replace(/^#/, "")).filter(Boolean));
   const limited = allowed.size > 0;
@@ -143,7 +144,7 @@ export function registerDiscordTools(
       title: "Discord に書く",
       description:
         "コモンズの Discord のチャンネル（またはスレッド）に書き込む。ボット「コモンズのAI」の名前で投稿され、末尾に頼んだ人の名前が付く。" +
-        "reply_to に発言IDを渡すと、その発言への返信になる。@everyone などで人を呼び出すことはできない。" +
+        "reply_to に発言IDを渡すと、その発言への返信になる。人を呼ぶときは <@ユーザーID>、誰かの分身の AI を呼ぶときは <@&AI用ロールID> と書く（@everyone・@here やほかのロールでは呼び出せない）。" +
         "ここは複数の事業者が集まる場所なので、事業データ（人名・金額・口座・住所・取引先）は書かない。",
       inputSchema: z.object({
         channel: z.string().describe("チャンネル名（# なしでよい）かチャンネル・スレッドのID"),
@@ -156,13 +157,16 @@ export function registerDiscordTools(
       try {
         const ch = await resolve(channel);
         const signed = `${text}\n-# ${author}（Claude 経由）`;
+        // 本文に書いた人と、AI 用ロールだけを呼び出す（@everyone・@here・ほかのロールは呼ばない）
+        const users = [...new Set([...text.matchAll(/<@!?(\d+)>/g)].map((x) => x[1]))].slice(0, 100);
+        const roles = [...new Set([...text.matchAll(/<@&(\d+)>/g)].map((x) => x[1]))].filter((r) => aiRoleIds.includes(r));
         const chunks: string[] = [];
         for (let i = 0; i < signed.length; i += MAX_LEN) chunks.push(signed.slice(i, i + MAX_LEN));
         let first: any;
         for (const [i, c] of chunks.entries()) {
           const m = await discord(token, "POST", `/channels/${ch.id}/messages`, {
             content: c,
-            allowed_mentions: { parse: [] },
+            allowed_mentions: { parse: [], users, roles },
             ...(i === 0 && reply_to ? { message_reference: { message_id: reply_to, fail_if_not_exists: false } } : {}),
           });
           first ??= m;
@@ -207,7 +211,7 @@ export function registerDiscordTools(
           for (const m of msgs) {
             const at = new Date(m.timestamp).getTime();
             if (at < since || m.author?.id === me.userId) continue;
-            const toAI = !!me.aiRoleId && (m.mention_roles || []).includes(me.aiRoleId);
+            const toAI = !!me.aiRoleId && ((m.mention_roles || []).includes(me.aiRoleId) || (m.content || "").includes(`<@&${me.aiRoleId}>`));
             const toMe = (m.mentions || []).some((u: any) => u.id === me.userId);
             if (!toAI && !toMe) continue;
             const who = m.member?.nick || m.author?.global_name || m.author?.username || "?";
