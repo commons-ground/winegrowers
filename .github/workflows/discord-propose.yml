@@ -1,0 +1,19 @@
+# Discord の /propose と「コモンズに提案」を、#提案 に載せる。
+# 受け口（Cloudflare Worker）→ repository_dispatch → ここ → ground の discord-propose。
+name: discord-propose
+
+on:
+  repository_dispatch:
+    types: [discord-propose]
+
+permissions:
+  contents: read
+
+jobs:
+  propose:
+    uses: commons-ground/ground/.github/workflows/discord-propose.yml@main
+    with:
+      payload: ${{ toJSON(github.event.client_payload) }}
+      member_dir: discord
+    secrets:
+      DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
