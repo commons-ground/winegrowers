@@ -16,6 +16,7 @@ export interface Env {
   PUBLIC_URL?: string;
   DISCORD_BOT_TOKEN?: string; // ボット「コモンズのAI」の鍵（secret）
   DISCORD_GUILD_ID?: string; // コモンズの Discord サーバーのID（変数）
+  DISCORD_CHANNELS?: string; // 読み書きを許すチャンネル名のカンマ区切り（変数）。無ければサーバー内の全テキストチャンネル
 }
 
 type Props = { name: string };
@@ -129,6 +130,7 @@ const apiHandler = {
     const handler = createMcpHandler(() => buildServer(env.NOTION_TOKEN, name, {
         token: env.DISCORD_BOT_TOKEN,
         guildId: env.DISCORD_GUILD_ID,
+        channels: (env.DISCORD_CHANNELS ?? "").split(","),
       }), { route: "/mcp" });
     return handler(req, env, ctx);
   },

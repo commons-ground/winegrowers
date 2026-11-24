@@ -1,6 +1,7 @@
 // コモンズの Discord を、参加者の Claude から読み書きする道具。
 // ボット「コモンズのAI」の鍵（DISCORD_BOT_TOKEN）で読み書きする。鍵は Worker の secret にだけ置く。
 // 読めるのは DISCORD_GUILD_ID のサーバーだけ。ほかのサーバーのチャンネルIDを渡されても断る。
+// DISCORD_CHANNELS（チャンネル名のカンマ区切り）があれば、そのチャンネルと、その中のスレッドだけに絞る。
 
 import { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
@@ -30,7 +31,7 @@ async function discord(token: string, method: string, path: string, body?: unkno
 
 const explain = (e: unknown): Text => {
   if (e instanceof DiscordError && (e.status === 403 || e.status === 404)) {
-    return fail("そのチャンネルは見られません。チャンネルIDが違うか、ボットに見る権限がありません。");
+    return fail("そのチャンネルは使えません。チャンネルIDが違うか、このサーバーで許可していないチャンネルです。");
   }
   return fail(e instanceof Error ? e.message : String(e));
 };
@@ -38,20 +39,38 @@ const explain = (e: unknown): Text => {
 type Channel = { id: string; name: string; type: number; parent_id?: string; topic?: string };
 const TEXT_TYPES = new Set([0, 5, 15]); // テキスト・お知らせ・フォーラム
 
-export function registerDiscordTools(server: McpServer, token: string, guildId: string, author: string): void {
+export function registerDiscordTools(
+  server: McpServer,
+  token: string,
+  guildId: string,
+  author: string,
+  allowedNames: string[] = [],
+): void {
+  const allowed = new Set(allowedNames.map((n) => n.trim().replace(/^#/, "")).filter(Boolean));
+  const limited = allowed.size > 0;
+  // 許可したチャンネルの一覧（名前→チャンネル）。スレッドは親が許可されていれば通す
+  const allowedChannels = async (): Promise<Channel[]> => {
+    const list: Channel[] = await discord(token, "GET", `/guilds/${guildId}/channels`);
+    return list.filter((c) => TEXT_TYPES.has(c.type) && (!limited || allowed.has(c.name)));
+  };
+  const permitted = async (ch: Channel): Promise<Channel> => {
+    if (!limited) return ch;
+    const ok = await allowedChannels();
+    if (ok.some((c) => c.id === ch.id || c.id === ch.parent_id)) return ch;
+    throw new DiscordError(403, "not allowed");
+  };
   // チャンネルがこのサーバーのものかを確かめる（スレッドも含む）
   const ownChannel = async (channelId: string): Promise<Channel> => {
     const ch = await discord(token, "GET", `/channels/${channelId}`);
     if (ch.guild_id !== guildId) throw new DiscordError(403, "other guild");
-    return ch;
+    return permitted(ch);
   };
   // チャンネル名（#aiに聞く など）でも ID でも受け付ける
   const resolve = async (channel: string): Promise<Channel> => {
     const c = channel.trim().replace(/^#/, "");
     if (/^\d{15,22}$/.test(c)) return ownChannel(c);
-    const list: Channel[] = await discord(token, "GET", `/guilds/${guildId}/channels`);
-    const hit = list.find((x) => x.name === c && TEXT_TYPES.has(x.type));
-    if (!hit) throw new Error(`チャンネル「${c}」が見つかりません。discord_channels で名前を確かめてください。`);
+    const hit = (await allowedChannels()).find((x) => x.name === c);
+    if (!hit) throw new Error(`チャンネル「${c}」は使えません。discord_channels で使えるチャンネルを確かめてください。`);
     return hit;
   };
 
@@ -59,17 +78,18 @@ export function registerDiscordTools(server: McpServer, token: string, guildId: 
     "discord_channels",
     {
       title: "Discord のチャンネル一覧",
-      description: "コモンズの Discord のテキストチャンネルと、進行中のスレッドを一覧にする。",
+      description: "コモンズの Discord で読み書きできるチャンネルと、その中の進行中のスレッドを一覧にする。",
       inputSchema: z.object({}),
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async () => {
       try {
-        const list: Channel[] = await discord(token, "GET", `/guilds/${guildId}/channels`);
-        const threads = (await discord(token, "GET", `/guilds/${guildId}/threads/active`)).threads as Channel[];
-        const lines = list
-          .filter((c) => TEXT_TYPES.has(c.type))
-          .map((c) => `- #${c.name}  id: ${c.id}${c.topic ? `  （${c.topic}）` : ""}`);
+        const list = await allowedChannels();
+        const ids = new Set(list.map((c) => c.id));
+        const threads = ((await discord(token, "GET", `/guilds/${guildId}/threads/active`)).threads as Channel[]).filter(
+          (t) => ids.has(t.parent_id ?? ""),
+        );
+        const lines = list.map((c) => `- #${c.name}  id: ${c.id}${c.topic ? `  （${c.topic}）` : ""}`);
         const tl = threads.map((t) => `- スレッド「${t.name}」  id: ${t.id}  親: ${t.parent_id}`);
         return ok([...lines, ...(tl.length ? ["", "進行中のスレッド", ...tl] : [])].join("\n") || "チャンネルがありません。");
       } catch (e) {
