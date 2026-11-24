@@ -45,6 +45,7 @@ export function registerDiscordTools(
   guildId: string,
   author: string,
   allowedNames: string[] = [],
+  me?: { userId: string; aiRoleId?: string },
 ): void {
   const allowed = new Set(allowedNames.map((n) => n.trim().replace(/^#/, "")).filter(Boolean));
   const limited = allowed.size > 0;
@@ -167,6 +168,70 @@ export function registerDiscordTools(
           first ??= m;
         }
         return ok(`#${ch.name} に書きました。https://discord.com/channels/${guildId}/${ch.id}/${first.id}`);
+      } catch (e) {
+        return explain(e);
+      }
+    },
+  );
+
+  server.registerTool(
+    "discord_inbox",
+    {
+      title: "Discord の自分宛て（受け取り箱）",
+      description:
+        "コモンズの Discord で、つないでいる本人か、本人の AI（AI 用のロール）がメンションされた発言を集める。" +
+        "会話の始めや「Discord で自分宛て何かある？」と聞かれたときに使う。本人宛てか AI 宛てかを分けて返すので、" +
+        "AI 宛ての依頼は内容を確かめてから進め、本人宛ての連絡は本人に伝える。",
+      inputSchema: z.object({
+        days: z.number().int().min(1).max(30).default(3).describe("何日前までさかのぼるか"),
+      }),
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    async ({ days }) => {
+      if (!me) {
+        return fail(
+          "受け取り箱は「Discord でログインしてつなぐ」でつないだ人だけが使えます。コネクタをいったん外し、Discord でログインしてつなぎ直してください。",
+        );
+      }
+      try {
+        const since = Date.now() - days * 86400_000;
+        const list = await allowedChannels();
+        const ids = new Set(list.map((c) => c.id));
+        const threads = ((await discord(token, "GET", `/guilds/${guildId}/threads/active`)).threads as Channel[]).filter(
+          (t) => ids.has(t.parent_id ?? ""),
+        );
+        const names = new Map<string, string>([...list, ...threads].map((c) => [c.id, c.parent_id && !ids.has(c.id) ? `スレッド「${c.name}」` : `#${c.name}`]));
+        const hits: { at: number; line: string; kind: "AI" | "本人" }[] = [];
+        for (const ch of [...list, ...threads]) {
+          const msgs: any[] = await discord(token, "GET", `/channels/${ch.id}/messages?limit=100`);
+          for (const m of msgs) {
+            const at = new Date(m.timestamp).getTime();
+            if (at < since || m.author?.id === me.userId) continue;
+            const toAI = !!me.aiRoleId && (m.mention_roles || []).includes(me.aiRoleId);
+            const toMe = (m.mentions || []).some((u: any) => u.id === me.userId);
+            if (!toAI && !toMe) continue;
+            const who = m.member?.nick || m.author?.global_name || m.author?.username || "?";
+            const when = new Date(at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
+            hits.push({
+              at,
+              kind: toAI ? "AI" : "本人",
+              line: `[${when}] ${names.get(ch.id)} ${who}：${m.content || ""}  （channel: ${ch.id} / id: ${m.id}）`,
+            });
+          }
+        }
+        if (!hits.length) return ok(`この${days}日、あなたやあなたの AI 宛てのメンションはありません。`);
+        hits.sort((a, b) => a.at - b.at);
+        const ai = hits.filter((h) => h.kind === "AI").map((h) => h.line);
+        const person = hits.filter((h) => h.kind === "本人").map((h) => h.line);
+        return ok(
+          [
+            ai.length ? `## あなたの AI 宛て（${ai.length}件）\n${ai.join("\n")}` : "",
+            person.length ? `## あなた宛て（${person.length}件）\n${person.join("\n")}` : "",
+            me.aiRoleId ? "" : "（あなたの AI 用のロールはまだ登録されていません。登録されると、AI 宛ても集められます）",
+          ]
+            .filter(Boolean)
+            .join("\n\n"),
+        );
       } catch (e) {
         return explain(e);
       }

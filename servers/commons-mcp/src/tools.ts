@@ -37,7 +37,12 @@ const guard =
 const READ = { readOnlyHint: true, openWorldHint: false } as const;
 const WRITE = { readOnlyHint: false, destructiveHint: false, openWorldHint: false } as const;
 
-export type DiscordConfig = { token?: string; guildId?: string; channels?: string[] };
+export type DiscordConfig = {
+  token?: string;
+  guildId?: string;
+  channels?: string[];
+  me?: { userId: string; aiRoleId?: string }; // つないでいる人の Discord ID と、その人の AI 用ロール
+};
 
 export function buildServer(token: string, author: string, discordConfig: DiscordConfig = {}): McpServer {
   const server = new McpServer(
@@ -214,7 +219,7 @@ export function buildServer(token: string, author: string, discordConfig: Discor
   );
 
   if (discordConfig.token && discordConfig.guildId) {
-    registerDiscordTools(server, discordConfig.token, discordConfig.guildId, author, discordConfig.channels);
+    registerDiscordTools(server, discordConfig.token, discordConfig.guildId, author, discordConfig.channels, discordConfig.me);
   }
 
   return server;
