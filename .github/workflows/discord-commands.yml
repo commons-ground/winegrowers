@@ -1,4 +1,4 @@
-# Discord のサーバーに /ai コマンドを登録する。最初に1回、コマンドを変えたときにもう1回、手で動かす。
+# Discord のサーバーに、ground の commands.json のコマンド（/ai・/提案・/録音・/使い方など）を登録する。最初に1回、コマンドを変えたときにもう1回、手で動かす。
 name: discord-commands
 
 on:

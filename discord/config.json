@@ -5,5 +5,7 @@
   "max_budget_usd": 0.5,
   "max_turns": 30,
   "history_messages": 20,
-  "exclude_plugins": []
+  "exclude_plugins": [],
+  "proposal_channel": "スキルの相談",
+  "meeting_max_budget_usd": 1.0
 }
