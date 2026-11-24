@@ -19,16 +19,19 @@ export interface Env {
   DISCORD_GUILD_ID?: string; // コモンズの Discord サーバーのID（変数）
   DISCORD_CHANNELS?: string; // 読み書きを許すチャンネル名のカンマ区切り（変数）。無ければサーバー内の全テキストチャンネル
   DISCORD_CLIENT_ID?: string; // Discord アプリの ID（変数）。Discord でログインに使う
-  DISCORD_CLIENT_SECRET?: string; // Discord アプリの OAuth2 のシークレット（secret）。無いあいだは Discord でログインを出さない
+  DISCORD_CLIENT_SECRET?: string;
+  DISCORD_AI_ROLES?: string; // JSON {"Discord のユーザーID": "その人の AI 用ロールの ID"}（変数）。受け取り箱で使う // Discord アプリの OAuth2 のシークレット（secret）。無いあいだは Discord でログインを出さない
 }
 
 const discordLoginReady = (env: Env) => Boolean(env.DISCORD_CLIENT_ID && env.DISCORD_CLIENT_SECRET && env.DISCORD_GUILD_ID);
 
-type Props = { name: string };
+type Props = { name: string; discordId?: string };
 
 const escape = (v: string) => v.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-function members(env: Env): Record<string, string> {
+// MEMBER_CODES の値は「名前」か {"name":"名前","discord":"Discord のユーザーID"}。ID があれば受け取り箱が使える
+type Member = { name: string; discordId?: string };
+function members(env: Env): Record<string, string | { name: string; discord?: string }> {
   try {
     return JSON.parse(env.MEMBER_CODES || "{}");
   } catch {
@@ -36,15 +39,17 @@ function members(env: Env): Record<string, string> {
   }
 }
 
-async function codeMatches(input: string, env: Env): Promise<{ name: string; id: string } | null> {
+async function codeMatches(input: string, env: Env): Promise<(Member & { id: string }) | null> {
   const enc = new TextEncoder();
   const digest = async (s: string) => new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(s)));
   const a = await digest(input.trim());
-  for (const [code, name] of Object.entries(members(env))) {
+  for (const [code, v] of Object.entries(members(env))) {
+    const name = typeof v === "string" ? v : v.name;
+    const discordId = typeof v === "string" ? undefined : v.discord;
     const b = await digest(code);
     let diff = 0;
     for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
-    if (diff === 0) return { name, id: `m-${[...b.slice(0, 6)].map((x) => x.toString(16).padStart(2, "0")).join("")}` };
+    if (diff === 0) return { name, discordId, id: `m-${[...b.slice(0, 6)].map((x) => x.toString(16).padStart(2, "0")).join("")}` };
   }
   return null;
 }
@@ -85,7 +90,7 @@ ${discord ? "</details>" : ""}`;
 }
 
 // Discord でログイン：コモンズのサーバーのメンバーかを Discord に聞き、表示名を返す
-async function discordMember(code: string, redirectUri: string, env: Env): Promise<{ id: string; name: string } | null> {
+async function discordMember(code: string, redirectUri: string, env: Env): Promise<{ id: string; name: string; discordId: string } | null> {
   const tokenRes = await fetch("https://discord.com/api/v10/oauth2/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -105,7 +110,7 @@ async function discordMember(code: string, redirectUri: string, env: Env): Promi
   if (res.status === 404 || res.status === 403) return null; // サーバーに入っていない
   if (!res.ok) throw new Error(`Discord にメンバーかどうかを聞けませんでした（${res.status}）`);
   const m = (await res.json()) as { nick?: string; user: { id: string; username: string; global_name?: string } };
-  return { id: `d-${m.user.id}`, name: m.nick || m.user.global_name || m.user.username };
+  return { id: `d-${m.user.id}`, name: m.nick || m.user.global_name || m.user.username, discordId: m.user.id };
 }
 
 const authHandler = {
@@ -129,7 +134,7 @@ const authHandler = {
           userId: member.id,
           metadata: { name: member.name },
           scope: resumed.request.scope,
-          props: { name: member.name } satisfies Props,
+          props: { name: member.name, discordId: member.discordId } satisfies Props,
         });
         resumed.headers.set("Location", redirectTo);
         return new Response(null, { status: 302, headers: resumed.headers });
@@ -179,7 +184,7 @@ const authHandler = {
           userId: member.id, // トークンに入るので ASCII にする
           metadata: { name: member.name },
           scope: approved.request.scope,
-          props: { name: member.name } satisfies Props,
+          props: { name: member.name, discordId: member.discordId } satisfies Props,
         });
         approved.headers.set("Location", redirectTo);
         return new Response(null, { status: 302, headers: approved.headers });
@@ -199,11 +204,17 @@ const authHandler = {
 
 const apiHandler = {
   fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const name = (ctx.props as Props | undefined)?.name ?? "不明な参加者";
+    const props = ctx.props as Props | undefined;
+    const name = props?.name ?? "不明な参加者";
+    let aiRoles: Record<string, string> = {};
+    try {
+      aiRoles = JSON.parse(env.DISCORD_AI_ROLES || "{}");
+    } catch {}
     const handler = createMcpHandler(() => buildServer(env.NOTION_TOKEN, name, {
         token: env.DISCORD_BOT_TOKEN,
         guildId: env.DISCORD_GUILD_ID,
         channels: (env.DISCORD_CHANNELS ?? "").split(","),
+        me: props?.discordId ? { userId: props.discordId, aiRoleId: aiRoles[props.discordId] } : undefined,
       }), { route: "/mcp" });
     return handler(req, env, ctx);
   },

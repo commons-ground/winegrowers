@@ -36,6 +36,7 @@ Discord のサーバーに入っている人なら、これで通る。参加者
 | commons_comment | ページにコメントする |
 | discord_channels | コモンズの Discord のチャンネルと進行中のスレッドを一覧にする |
 | discord_read | Discord のチャンネルの発言を読む。📌 の付いた発言だけにも絞れる |
+| discord_inbox | 受け取り箱。自分か自分の AI（AI 用のロール）がメンションされた発言を集める（Discord でログインした人だけ） |
 | discord_post | Discord に書き込む（ボット「コモンズのAI」の名前で、末尾に頼んだ人の名前が付く） |
 
 Discord の道具は、Worker に `DISCORD_BOT_TOKEN`（secret）と `DISCORD_GUILD_ID`（変数）があるときだけ出る。読み書きできるのはそのサーバーのうち、`wrangler.jsonc` の `DISCORD_CHANNELS` に書いたチャンネル（いまは #一般・#スキルの相談・#aiに聞く）と、その中のスレッドだけ。
