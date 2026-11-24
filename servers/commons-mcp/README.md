@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart LR
-  A["参加者のClaude<br>（カスタムコネクタ）"] -- "参加者コードで<br>ログイン" --> W["このサーバー<br>（Cloudflare Workers）"]
+  A["参加者のClaude<br>（カスタムコネクタ）"] -- "Discord か<br>参加者コードで<br>ログイン" --> W["このサーバー<br>（Cloudflare Workers）"]
   W -- "コモンズの鍵<br>（内部インテグレーション）" --> N["コモンズのNotion<br>（共有したページだけ）"]
 ```
 
@@ -16,9 +16,12 @@ flowchart LR
 
 ## 参加者がつなぐ手順
 
-1. Claude で「カスタマイズ（Customize）」→「コネクタ（Connectors）」→「＋」→「カスタムコネクタを追加（Add custom connector）」
-2. 名前は `Winegrowers Commons`、URL は世話役から届いた `https://…workers.dev/mcp`
-3. 「接続（Connect）」を押すと、参加者コードを入れる画面が出る。世話役から受け取ったコードを入れて「つなぐ」
+1. コモンズの Discord サーバーに、招待リンクから入っておく
+2. Claude で「カスタマイズ（Customize）」→「コネクタ（Connectors）」→「＋」→「カスタムコネクタを追加（Add custom connector）」
+3. 名前は `Winegrowers Commons`、URL は入口のページに書いてある `https://…workers.dev/mcp`
+4. 「接続（Connect）」を押し、出てきた画面で「Discord でログインしてつなぐ」→ Discord の画面で「認証（Authorize）」
+
+Discord のサーバーに入っている人なら、これで通る。参加者コードは要らない。Discord を使わない人は、同じ画面の「参加者コード」から、世話役に受け取ったコードでつなぐ。
 
 ## できること
 
@@ -53,7 +56,8 @@ Discord の道具は、Worker に `DISCORD_BOT_TOKEN`（secret）と `DISCORD_GU
    - `npx wrangler secret put NOTION_TOKEN`：Notion の「開発者ツール」→ コネクト「Commons MCP」の API トークン
    - `npx wrangler secret put DISCORD_BOT_TOKEN`：Discord 開発者画面のボット「コモンズのAI」の鍵（任意。入れると Discord の道具が出る。`/ai` で動いているボットと同じ鍵でよい）
    - Cloudflare の画面で Worker の「設定」→「変数とシークレット」に、変数 `DISCORD_GUILD_ID`（コモンズの Discord サーバーのID）を足す
-   - `npx wrangler secret put MEMBER_CODES`：`{"参加者コード":"表示名", …}` の JSON。参加者を足すときはこれを入れ直す
+   - Discord でログインを使うとき：Discord 開発者画面のアプリ「コモンズのAI」→「OAuth2」で、Redirects に `https://…workers.dev/discord/callback` を足し、Client Secret を `npx wrangler secret put DISCORD_CLIENT_SECRET` で入れる。変数 `DISCORD_CLIENT_ID`（アプリの ID）も画面で足す
+   - `npx wrangler secret put MEMBER_CODES`（Discord を使わない人がいるときだけ）：`{"参加者コード":"表示名", …}` の JSON。参加者を足すときはこれを入れ直す
 5. `npm install && npx wrangler deploy`
 
 </details>

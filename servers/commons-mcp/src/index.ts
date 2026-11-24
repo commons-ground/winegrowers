@@ -1,6 +1,7 @@
 // Winegrowers Commons の共有 Notion に、参加者の Claude からつなぐための MCP サーバー。
-// - 認証：OAuth（claude.ai のカスタムコネクタが求める形）。本人確認は「参加者コード」で行う。
-// - 参加者コード → 名前の対応は Worker の secret（MEMBER_CODES）にだけ置く。リポジトリには置かない。
+// - 認証：OAuth（claude.ai のカスタムコネクタが求める形）。本人確認は2通り。
+//   1. Discord でログイン：コモンズの Discord サーバーに入っている人なら通す（参加者コードを配らなくてよい）
+//   2. 参加者コード：Discord を使わない人向け。コード → 名前の対応は Worker の secret（MEMBER_CODES）にだけ置く
 // - Notion へは内部インテグレーションのトークン（NOTION_TOKEN）で読み書きする。
 // - Discord へはボットの鍵（DISCORD_BOT_TOKEN）で読み書きする。鍵が無いあいだは Discord の道具を出さない。
 
@@ -17,7 +18,11 @@ export interface Env {
   DISCORD_BOT_TOKEN?: string; // ボット「コモンズのAI」の鍵（secret）
   DISCORD_GUILD_ID?: string; // コモンズの Discord サーバーのID（変数）
   DISCORD_CHANNELS?: string; // 読み書きを許すチャンネル名のカンマ区切り（変数）。無ければサーバー内の全テキストチャンネル
+  DISCORD_CLIENT_ID?: string; // Discord アプリの ID（変数）。Discord でログインに使う
+  DISCORD_CLIENT_SECRET?: string; // Discord アプリの OAuth2 のシークレット（secret）。無いあいだは Discord でログインを出さない
 }
+
+const discordLoginReady = (env: Env) => Boolean(env.DISCORD_CLIENT_ID && env.DISCORD_CLIENT_SECRET && env.DISCORD_GUILD_ID);
 
 type Props = { name: string };
 
@@ -58,17 +63,49 @@ ${body}</html>`,
   );
 }
 
-function consentForm(clientName: string, redirectHost: string, handle: string, error = ""): string {
-  return `<h1>Winegrowers Commons の Notion につなぐ</h1>
-<p><strong>${escape(clientName)}</strong> が、コモンズの共有 Notion を読み書きできるようになります。</p>
+function consentForm(clientName: string, redirectHost: string, handle: string, discord: boolean): string {
+  const h = escape(handle);
+  const discordPart = discord
+    ? `<form method="post"><input type="hidden" name="handle" value="${h}">
+<p><button name="decision" value="discord"><strong>Discord でログインしてつなぐ</strong></button></p>
+<p class="muted">コモンズの Discord サーバーに入っている人は、こちらだけで終わります。書き込みには Discord の表示名が付きます。</p></form>
+<details><summary>Discord を使わない人（参加者コード）</summary>`
+    : "";
+  return `<h1>Winegrowers Commons につなぐ</h1>
+<p><strong>${escape(clientName)}</strong> が、コモンズの共有 Notion と Discord を読み書きできるようになります。</p>
 <p class="muted">つないだ後の行き先：${escape(redirectHost)}</p>
+${discordPart}
 <form method="post">
-<input type="hidden" name="handle" value="${escape(handle)}">
-<p><label>参加者コード<br><input type="password" name="code" autocomplete="off" required></label></p>
-${error ? `<p class="err">${escape(error)}</p>` : ""}
-<p><button name="decision" value="approve">つなぐ</button><button name="decision" value="deny">やめる</button></p>
+<input type="hidden" name="handle" value="${h}">
+<p><label>参加者コード<br><input type="password" name="code" autocomplete="off"></label></p>
+<p><button name="decision" value="approve">コードでつなぐ</button><button name="decision" value="deny">やめる</button></p>
 </form>
-<p class="muted">参加者コードは、コモンズの世話役から受け取ったものです。書き込んだ内容には、このコードに対応するお名前が付きます。</p>`;
+<p class="muted">参加者コードは、コモンズの世話役から受け取ったものです。書き込んだ内容には、このコードに対応するお名前が付きます。</p>
+${discord ? "</details>" : ""}`;
+}
+
+// Discord でログイン：コモンズのサーバーのメンバーかを Discord に聞き、表示名を返す
+async function discordMember(code: string, redirectUri: string, env: Env): Promise<{ id: string; name: string } | null> {
+  const tokenRes = await fetch("https://discord.com/api/v10/oauth2/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: redirectUri,
+      client_id: env.DISCORD_CLIENT_ID!,
+      client_secret: env.DISCORD_CLIENT_SECRET!,
+    }),
+  });
+  if (!tokenRes.ok) throw new Error(`Discord のトークン交換に失敗しました（${tokenRes.status}）`);
+  const { access_token } = (await tokenRes.json()) as { access_token: string };
+  const res = await fetch(`https://discord.com/api/v10/users/@me/guilds/${env.DISCORD_GUILD_ID}/member`, {
+    headers: { Authorization: `Bearer ${access_token}` },
+  });
+  if (res.status === 404 || res.status === 403) return null; // サーバーに入っていない
+  if (!res.ok) throw new Error(`Discord にメンバーかどうかを聞けませんでした（${res.status}）`);
+  const m = (await res.json()) as { nick?: string; user: { id: string; username: string; global_name?: string } };
+  return { id: `d-${m.user.id}`, name: m.nick || m.user.global_name || m.user.username };
 }
 
 const authHandler = {
@@ -77,19 +114,55 @@ const authHandler = {
     if (url.pathname === "/") {
       return page(`<h1>Winegrowers Commons MCP</h1><p>Claude のカスタムコネクタに <code>${escape(url.origin)}/mcp</code> を追加してください。</p>`);
     }
+    const oauth = env.OAUTH_PROVIDER;
+    if (url.pathname === "/discord/callback") {
+      try {
+        const resumed = await oauth.finishUpstream(req);
+        const code = url.searchParams.get("code");
+        if (!code) return page(`<h1>つなげませんでした</h1><p>Discord でログインが取り消されました。Claude の画面から、もう一度つないでください。</p>`, 400);
+        const member = await discordMember(code, `${url.origin}/discord/callback`, env);
+        if (!member) {
+          return page(`<h1>まだ Discord のサーバーに入っていません</h1><p>コモンズの Discord サーバーの招待を受けて入ってから、Claude の画面でもう一度「接続」を押してください。</p>`, 403);
+        }
+        const { redirectTo } = await oauth.completeAuthorization({
+          request: resumed.request,
+          userId: member.id,
+          metadata: { name: member.name },
+          scope: resumed.request.scope,
+          props: { name: member.name } satisfies Props,
+        });
+        resumed.headers.set("Location", redirectTo);
+        return new Response(null, { status: 302, headers: resumed.headers });
+      } catch (e) {
+        const msg = e instanceof AuthorizationError ? ((e as any).description ?? "") : e instanceof Error ? e.message : String(e);
+        return page(`<h1>つなげませんでした</h1><p>${escape(msg)}</p><p>Claude の画面から、もう一度つないでください。</p>`, 400);
+      }
+    }
     if (url.pathname !== "/authorize") return new Response("Not found", { status: 404 });
 
-    const oauth = env.OAUTH_PROVIDER;
     try {
       if (req.method === "GET") {
         const request = await oauth.parseAuthRequest(req);
         const details = await oauth.describeConsent(request);
         const consent = await oauth.beginConsent(request);
-        return page(consentForm(details.clientName, details.redirectHost, consent.handle), 200, consent.headers);
+        return page(consentForm(details.clientName, details.redirectHost, consent.handle, discordLoginReady(env)), 200, consent.headers);
       }
       if (req.method === "POST") {
         const form = await req.formData();
         const handle = String(form.get("handle") ?? "");
+        if (form.get("decision") === "discord" && discordLoginReady(env)) {
+          const approved = await oauth.approveConsent(req, handle);
+          const up = await oauth.beginUpstream(approved.request, { headers: approved.headers });
+          const q = new URLSearchParams({
+            client_id: env.DISCORD_CLIENT_ID!,
+            redirect_uri: `${url.origin}/discord/callback`,
+            response_type: "code",
+            scope: "identify guilds.members.read",
+            state: up.state,
+          });
+          up.headers.set("Location", `https://discord.com/oauth2/authorize?${q}`);
+          return new Response(null, { status: 302, headers: up.headers });
+        }
         if (form.get("decision") !== "approve") {
           const denied = await oauth.denyConsent(req, handle);
           return new Response(null, { status: 302, headers: denied.headers });
