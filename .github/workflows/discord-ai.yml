@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  issues: write  # AI の〔覚えておく〕を Issue「覚えておく候補」にためる（ground の discord-ai-member）
 
 jobs:
   reply:
