@@ -28,13 +28,15 @@ Claude Code では次のとおりです。
 
 作業のルールは `CLAUDE.md` にあります。土台（ground）の基本ルールはここでも効きます。
 
+プルリクエストは、自動チェック（validate）と門番（guard）が通れば自動で入ります。門番は差分を機械で点検し、危ない変更は止め、人にしか決められないこと（鍵や権限を足す、お金の上限を上げる、など）だけを人に回します。おかしなものが入ったら、まず戻します。
+
 ## 話す場所
 
 参加者どうしは Discord で話します。決まったこと・残す知識は Discord に置きっぱなしにせず、知識コモンズかこのリポジトリに移します。
 
 各自の Claude からも Discord を読み書きできます。ground の [はじめかた](https://github.com/commons-ground/ground/blob/main/docs/getting-started.md) の4で、入口（コネクタ「Winegrowers Commons」）を「Discord でログイン」でつなげば、知識コモンズと Discord の両方が使えます。参加者コードは要りません。
 
-Discord の `#aiに聞く` などで `/ai 〇〇` と打つと、このリポジトリと ground のスキルを読んだ「コモンズのAI」が答えます。呼び名やふるまいは `discord/` に、仕組みは ground の [discord-ai-member](https://github.com/commons-ground/ground/tree/main/tools/discord-ai-member) にあります。
+Discord の `#aiに聞く` などで `@コモンズのAI 〇〇` とメンションするか（会話の中で。読んだら 👀）、`/ai 〇〇` と打つと（単発で）、このリポジトリと ground のスキルを読んだ「コモンズのAI」が答えます。呼び名やふるまいは `discord/` に、仕組みは ground の [discord-ai-member](https://github.com/commons-ground/ground/tree/main/tools/discord-ai-member) にあります。
 
 ## Webの読み込み許可
 
