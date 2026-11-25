@@ -20,7 +20,7 @@ export interface Env {
   DISCORD_CHANNELS?: string; // 読み書きを許すチャンネル名のカンマ区切り（変数）。無ければサーバー内の全テキストチャンネル
   DISCORD_CLIENT_ID?: string; // Discord アプリの ID（変数）。Discord でログインに使う
   DISCORD_CLIENT_SECRET?: string;
-  DISCORD_MEMBER_ROLE?: string; // （任意）参加者ロールのID（変数）。あれば、そのロールを持つ人だけがつなげる（入っただけの人は Discord の /ai まで）
+  DISCORD_MEMBER_ROLE?: string; // （任意）「コモンズメンバー」ロールのID（変数）。あれば、そのロールを持つ人だけがつなげる（入っただけの見学者は Discord の /ai まで）
   DISCORD_AI_ROLES?: string; // JSON {"Discord のユーザーID": "その人の AI 用ロールの ID"}（変数）。受け取り箱で使う // Discord アプリの OAuth2 のシークレット（secret）。無いあいだは Discord でログインを出さない
 }
 
@@ -132,7 +132,7 @@ const authHandler = {
           return page(`<h1>まだ Discord のサーバーに入っていません</h1><p>コモンズの Discord サーバーの招待を受けて入ってから、Claude の画面でもう一度「接続」を押してください。</p>`, 403);
         }
         if (member === "no-role") {
-          return page(`<h1>まだ「参加者」になっていません</h1><p>Discord のサーバーには入れています。共有の Notion への書き込みは「参加者」ロールの人に絞っています。Discord で世話役に声をかけてロールをもらってから、Claude の画面でもう一度「接続」を押してください（それまでも Discord の <code>/ai</code> は使えます）。</p>`, 403);
+          return page(`<h1>まだ「コモンズメンバー」になっていません</h1><p>Discord のサーバーには入れています（いまは見学者）。共有の Notion を使えるのはコモンズメンバーです。Discord の #ようこそ で「メンバーになりたい」と書き、メンバーの誰かに承認してもらってから、Claude の画面でもう一度「接続」を押してください（それまでも Discord の <code>/ai</code> は使えます）。</p>`, 403);
         }
         const { redirectTo } = await oauth.completeAuthorization({
           request: resumed.request,
