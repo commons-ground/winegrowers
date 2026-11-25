@@ -18,6 +18,7 @@
 ## 変え方
 
 - main に直接入れず、ブランチを切ってプルリクエストにする。自動チェック（validate）が通ると自動でマージされる
+- workflow（`.github/workflows/`）、コネクタのサーバー（`servers/`）、AI のふるまい・覚えていること（`discord/*.md`）、この CLAUDE.md に触れるプルリクエストには、自動マージの workflow がラベル「人の確認」を自動で付ける。作った本人以外か世話役が確かめてから入れる
 - 人の確認を待ちたいときは、プルリクエストを下書きで作ってラベル「人の確認」を付けてから、レビュー可にする
 - 変更したら `claude plugin validate .` と `claude plugin validate ./plugins/<名前>` を通す
 - プラグインの中身を変えたら、そのプラグインの `plugin.json` の `version` を上げる
