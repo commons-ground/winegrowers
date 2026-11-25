@@ -20,6 +20,7 @@ export interface Env {
   DISCORD_CHANNELS?: string; // 読み書きを許すチャンネル名のカンマ区切り（変数）。無ければサーバー内の全テキストチャンネル
   DISCORD_CLIENT_ID?: string; // Discord アプリの ID（変数）。Discord でログインに使う
   DISCORD_CLIENT_SECRET?: string;
+  DISCORD_MEMBER_ROLE?: string; // （任意）参加者ロールのID（変数）。あれば、そのロールを持つ人だけがつなげる（入っただけの人は Discord の /ai まで）
   DISCORD_AI_ROLES?: string; // JSON {"Discord のユーザーID": "その人の AI 用ロールの ID"}（変数）。受け取り箱で使う // Discord アプリの OAuth2 のシークレット（secret）。無いあいだは Discord でログインを出さない
 }
 
@@ -90,7 +91,7 @@ ${discord ? "</details>" : ""}`;
 }
 
 // Discord でログイン：コモンズのサーバーのメンバーかを Discord に聞き、表示名を返す
-async function discordMember(code: string, redirectUri: string, env: Env): Promise<{ id: string; name: string; discordId: string } | null> {
+async function discordMember(code: string, redirectUri: string, env: Env): Promise<{ id: string; name: string; discordId: string } | "no-role" | null> {
   const tokenRes = await fetch("https://discord.com/api/v10/oauth2/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -109,7 +110,8 @@ async function discordMember(code: string, redirectUri: string, env: Env): Promi
   });
   if (res.status === 404 || res.status === 403) return null; // サーバーに入っていない
   if (!res.ok) throw new Error(`Discord にメンバーかどうかを聞けませんでした（${res.status}）`);
-  const m = (await res.json()) as { nick?: string; user: { id: string; username: string; global_name?: string } };
+  const m = (await res.json()) as { nick?: string; roles?: string[]; user: { id: string; username: string; global_name?: string } };
+  if (env.DISCORD_MEMBER_ROLE && !(m.roles ?? []).includes(env.DISCORD_MEMBER_ROLE)) return "no-role";
   return { id: `d-${m.user.id}`, name: m.nick || m.user.global_name || m.user.username, discordId: m.user.id };
 }
 
@@ -128,6 +130,9 @@ const authHandler = {
         const member = await discordMember(code, `${url.origin}/discord/callback`, env);
         if (!member) {
           return page(`<h1>まだ Discord のサーバーに入っていません</h1><p>コモンズの Discord サーバーの招待を受けて入ってから、Claude の画面でもう一度「接続」を押してください。</p>`, 403);
+        }
+        if (member === "no-role") {
+          return page(`<h1>まだ「参加者」になっていません</h1><p>Discord のサーバーには入れています。共有の Notion への書き込みは「参加者」ロールの人に絞っています。Discord で世話役に声をかけてロールをもらってから、Claude の画面でもう一度「接続」を押してください（それまでも Discord の <code>/ai</code> は使えます）。</p>`, 403);
         }
         const { redirectTo } = await oauth.completeAuthorization({
           request: resumed.request,
