@@ -1,9 +1,11 @@
 name: auto-merge
-# プルリクエストが出たら自動マージを予約する。validate が通った時点で main に入る。
-# 人の確認を待ちたいときは、ラベル「人の確認」を付ける（付いている間は予約しない・予約を外す）。
+# プルリクエストが出たら自動マージを予約する。main のブランチ保護で必須にしたチェック
+# （validate と guard＝門番）がすべて通った時点で main に入る。
+# 人の判断が要るものは門番が止めて、理由を書いて人に回す（tools/guard/check.py）。
+# 団体の外（フォーク）からのプルリクエストは予約しない。下書きも予約しない。
 on:
   pull_request:
-    types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled]
+    types: [opened, reopened, synchronize, ready_for_review]
 permissions:
   contents: write
   pull-requests: write
@@ -12,27 +14,8 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft
     runs-on: ubuntu-latest
     steps:
-      - name: 鍵を持って動く仕組みや AI のふるまいに触れていれば、ラベル「人の確認」を自動で付ける
-        id: guard
+      - name: 自動マージを予約する
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.html_url }}
-        run: |
-          # workflow、コネクタのサーバー、AI のふるまい・覚えていること（discord/*.md）、このリポジトリの変え方
-          HIT=$(gh pr view "$PR" --json files -q '.files[].path' | grep -E '^(\.github/workflows/|servers/|discord/[^/]+\.md$|CLAUDE\.md$)' || true)
-          if [ -n "$HIT" ]; then
-            printf '人の確認が要るファイル：\n%s\n' "$HIT"
-            gh pr edit "$PR" --add-label "人の確認" || true
-            echo "hold=true" >> "$GITHUB_OUTPUT"
-          fi
-      - name: 自動マージを予約する（ラベル「人の確認」があれば外す）
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR: ${{ github.event.pull_request.html_url }}
-          HOLD: ${{ contains(github.event.pull_request.labels.*.name, '人の確認') || steps.guard.outputs.hold == 'true' }}
-        run: |
-          if [ "$HOLD" = "true" ]; then
-            gh pr merge --disable-auto "$PR" || true
-          else
-            gh pr merge --auto --merge "$PR"
-          fi
+        run: gh pr merge --auto --merge "$PR"

@@ -1,0 +1,12 @@
+# 門番：プルリクエストの差分を機械で点検する。中身は土台（commons-ground/ground）の guard.yml と tools/guard/check.py。
+# pull_request_target で動くので、点検に使うのはいつも main 側の workflow。プルリクエスト側のコードは実行しない。
+name: guard
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled]
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  guard:
+    uses: commons-ground/ground/.github/workflows/guard.yml@main
