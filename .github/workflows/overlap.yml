@@ -1,0 +1,12 @@
+# 開いている別のプルリクエストと同じファイルを変えていたら、コメントで知らせる（止めはしない）。
+# 中身は土台（commons-ground/ground）の overlap.yml。
+name: overlap
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  overlap:
+    uses: commons-ground/ground/.github/workflows/overlap.yml@main
