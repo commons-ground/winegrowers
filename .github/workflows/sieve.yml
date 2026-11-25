@@ -29,3 +29,6 @@ jobs:
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+      # 篩のアプリ（Commons Sieve）。行き先が ground の提案も、篩が直接プルリクエストにする
+      SIEVE_APP_ID: ${{ secrets.SIEVE_APP_ID }}
+      SIEVE_APP_PRIVATE_KEY: ${{ secrets.SIEVE_APP_PRIVATE_KEY }}
