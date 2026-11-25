@@ -1,6 +1,6 @@
 // Winegrowers Commons の共有 Notion に、参加者の Claude からつなぐための MCP サーバー。
 // - 認証：OAuth（claude.ai のカスタムコネクタが求める形）。本人確認は2通り。
-//   1. Discord でログイン：コモンズの Discord サーバーに入っている人なら通す（参加者コードを配らなくてよい）
+//   1. Discord でログイン：コモンズの Discord サーバーのコモンズメンバーなら通す（ロールがまだ無ければ、入っている人なら誰でも）
 //   2. 参加者コード：Discord を使わない人向け。コード → 名前の対応は Worker の secret（MEMBER_CODES）にだけ置く
 // - Notion へは内部インテグレーションのトークン（NOTION_TOKEN）で読み書きする。
 // - Discord へはボットの鍵（DISCORD_BOT_TOKEN）で読み書きする。鍵が無いあいだは Discord の道具を出さない。
@@ -20,7 +20,7 @@ export interface Env {
   DISCORD_CHANNELS?: string; // 読み書きを許すチャンネル名のカンマ区切り（変数）。無ければサーバー内の全テキストチャンネル
   DISCORD_CLIENT_ID?: string; // Discord アプリの ID（変数）。Discord でログインに使う
   DISCORD_CLIENT_SECRET?: string;
-  DISCORD_MEMBER_ROLE?: string; // （任意）「コモンズメンバー」ロールのID（変数）。あれば、そのロールを持つ人だけがつなげる（入っただけの見学者は Discord の /ai まで）
+  DISCORD_MEMBER_ROLE?: string; // （任意）「コモンズメンバー」ロールの名前（変数、wrangler.jsonc）。そのロールがサーバーにあれば、持つ人だけがつなげる（入っただけの見学者は Discord の /ai まで）。ロールがまだ無ければ誰でもつなげる
   DISCORD_AI_ROLES?: string; // JSON {"Discord のユーザーID": "その人の AI 用ロールの ID"}（変数）。受け取り箱で使う // Discord アプリの OAuth2 のシークレット（secret）。無いあいだは Discord でログインを出さない
 }
 
@@ -90,6 +90,17 @@ ${discordPart}
 ${discord ? "</details>" : ""}`;
 }
 
+// 「コモンズメンバー」ロールの ID を名前で探す（リポジトリに ID を書かないため）。見つからなければ "" ＝絞らない
+async function memberRoleId(env: Env): Promise<string> {
+  if (!env.DISCORD_MEMBER_ROLE || !env.DISCORD_BOT_TOKEN) return "";
+  const res = await fetch(`https://discord.com/api/v10/guilds/${env.DISCORD_GUILD_ID}/roles`, {
+    headers: { Authorization: `Bot ${env.DISCORD_BOT_TOKEN}` },
+  });
+  if (!res.ok) return "";
+  const roles = (await res.json()) as { id: string; name: string }[];
+  return roles.find((r) => r.name === env.DISCORD_MEMBER_ROLE)?.id ?? "";
+}
+
 // Discord でログイン：コモンズのサーバーのメンバーかを Discord に聞き、表示名を返す
 async function discordMember(code: string, redirectUri: string, env: Env): Promise<{ id: string; name: string; discordId: string } | "no-role" | null> {
   const tokenRes = await fetch("https://discord.com/api/v10/oauth2/token", {
@@ -111,7 +122,8 @@ async function discordMember(code: string, redirectUri: string, env: Env): Promi
   if (res.status === 404 || res.status === 403) return null; // サーバーに入っていない
   if (!res.ok) throw new Error(`Discord にメンバーかどうかを聞けませんでした（${res.status}）`);
   const m = (await res.json()) as { nick?: string; roles?: string[]; user: { id: string; username: string; global_name?: string } };
-  if (env.DISCORD_MEMBER_ROLE && !(m.roles ?? []).includes(env.DISCORD_MEMBER_ROLE)) return "no-role";
+  const roleId = await memberRoleId(env);
+  if (roleId && !(m.roles ?? []).includes(roleId)) return "no-role";
   return { id: `d-${m.user.id}`, name: m.nick || m.user.global_name || m.user.username, discordId: m.user.id };
 }
 

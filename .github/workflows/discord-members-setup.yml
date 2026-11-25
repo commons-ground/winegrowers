@@ -1,0 +1,23 @@
+# 見学者とコモンズメンバー（ground の docs/membership.md）を、コモンズの Discord に用意する。
+# 手で走らせる。apply を選ばなければ、何をするかを見せるだけ。何度走らせても同じ形になる。
+name: discord-members-setup
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 実際に変える
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 土台のスクリプトを取ってくる
+        run: git clone -q --depth 1 https://github.com/commons-ground/ground ground
+      - name: 用意する
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          APPLY: ${{ inputs.apply && '--apply' || '' }}
+        run: python3 ground/tools/members/setup.py $APPLY | tee -a "$GITHUB_STEP_SUMMARY"

@@ -58,7 +58,7 @@ Discord の道具は、Worker に `DISCORD_BOT_TOKEN`（secret）と `DISCORD_GU
    - `npx wrangler secret put DISCORD_BOT_TOKEN`：Discord 開発者画面のボット「コモンズのAI」の鍵（任意。入れると Discord の道具が出る。`/ai` で動いているボットと同じ鍵でよい）
    - Cloudflare の画面で Worker の「設定」→「変数とシークレット」に、変数 `DISCORD_GUILD_ID`（コモンズの Discord サーバーのID）を足す
    - Discord でログインを使うとき：Discord 開発者画面のアプリ「コモンズのAI」→「OAuth2」で、Redirects に `https://…workers.dev/discord/callback` を足し、Client Secret を `npx wrangler secret put DISCORD_CLIENT_SECRET` で入れる。変数 `DISCORD_CLIENT_ID`（アプリの ID）も画面で足す
-   - 変数 `DISCORD_MEMBER_ROLE`（任意）：「コモンズメンバー」ロールのID。入れると、Discord でログインしてつなげるのはメンバーだけになる（入っただけの見学者は Discord の `/ai` まで。ground の docs/membership.md）。入れないあいだは、サーバーに入っている人は誰でもつなげる
+   - 変数 `DISCORD_MEMBER_ROLE`（`wrangler.jsonc`）：「コモンズメンバー」ロールの名前。そのロールがサーバーにあれば、Discord でログインしてつなげるのはメンバーだけになる（入っただけの見学者は Discord の `/ai` まで。ground の docs/membership.md）。入れないあいだは、サーバーに入っている人は誰でもつなげる
    - `npx wrangler secret put MEMBER_CODES`（Discord を使わない人がいるときだけ）：`{"参加者コード":"表示名", …}` の JSON。参加者を足すときはこれを入れ直す
 5. `npm install && npx wrangler deploy`
 
