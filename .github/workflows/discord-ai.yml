@@ -10,7 +10,7 @@ on:
     types: [discord-interaction, discord-mention]
 
 permissions:
-  contents: read
+  contents: write  # 〔覚えておく〕を篩に渡す小さな仕事だけが使う（ground の discord-ai-member の remember）
   issues: write  # AI の〔覚えておく〕を Issue「覚えておく候補」にためる（ground の discord-ai-member）
 
 jobs:
