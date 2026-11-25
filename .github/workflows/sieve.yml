@@ -8,7 +8,7 @@ name: sieve
 on:
   repository_dispatch:
     # discord-propose は /propose・「コモンズに提案」、sieve-intake は #提案 に直接書いた発言（中継が見つけて送る）
-    types: [discord-propose, sieve-intake]
+    types: [discord-propose, sieve-intake, sieve-remember]
   issues:
     types: [opened]
   issue_comment:
