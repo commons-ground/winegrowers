@@ -45,6 +45,18 @@ Discord の道具は、Worker に `DISCORD_BOT_TOKEN`（secret）と `DISCORD_GU
 
 消す・アーカイブする道具は入れていない（戻せない操作は人が Notion の画面でする）。書き込みの末尾には、書いた人の名前が自動で付く（Notion 上の記録はすべて鍵の名前になるため）。
 
+## 共有スキルも配る（Skills over MCP、試行）
+
+MCP の Skills 拡張（`io.modelcontextprotocol/skills`）で、コモンズの共有スキルをこのコネクタからも配る。道具（Notion・Discord）と、その道具の使い方のスキルが同じ口から届く。
+
+- **正本は GitHub のプラグインのまま**。配るスキルは `skills.json` で選ぶ（いまは ground の `knowledge-qa` だけ）
+- 置き直し（`wrangler deploy`）のたびに、`scripts/gen-skills.mjs` が正本を読んで Worker に詰める（`wrangler.jsonc` の `build`）。生成物 `src/skills.gen.ts` はリポジトリに入れない
+- 配る版は置き直した時点のコミットで固定され、ファイルごとのダイジェストも決まる。Claude 側は、中身が変わると承認を取り直す
+- URI は `skill://<コモンズ>/<スキル名>/SKILL.md`（例：`skill://ground/knowledge-qa/SKILL.md`）
+- 試行で確かめること：Claude（Web・スマホ・Claude Code）で、つないだだけでこのスキルが見えて使えるか。見えれば、マーケットプレイスと二重に配らないよう、スキルごとに配る道を1つに決める
+
+足すときは `skills.json` にスキルのフォルダを書き、置き直す。
+
 ## 世話役が動かすとき（初回のみ）
 
 <details>

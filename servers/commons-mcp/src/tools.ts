@@ -12,6 +12,7 @@ import {
   titleOf,
 } from "./notion";
 import { registerDiscordTools } from "./discord";
+import type { SkillCatalog } from "@modelcontextprotocol/server/ext/skills";
 
 type Text = { content: { type: "text"; text: string }[]; isError?: boolean };
 const ok = (text: string): Text => ({ content: [{ type: "text", text }] });
@@ -45,7 +46,7 @@ export type DiscordConfig = {
   aiRoleIds?: string[]; // 参加者全員の AI 用ロール（書き込みで呼び出してよいロール）
 };
 
-export function buildServer(token: string, author: string, discordConfig: DiscordConfig = {}): McpServer {
+export function buildServer(token: string, author: string, discordConfig: DiscordConfig = {}, skills?: SkillCatalog): McpServer {
   const server = new McpServer(
     { name: "winegrowers-commons-notion", version: "0.1.0" },
     {
@@ -222,6 +223,9 @@ export function buildServer(token: string, author: string, discordConfig: Discor
   if (discordConfig.token && discordConfig.guildId) {
     registerDiscordTools(server, discordConfig.token, discordConfig.guildId, author, discordConfig.channels, discordConfig.me, discordConfig.aiRoleIds);
   }
+
+  // 共有スキル（Skills over MCP）。道具の登録のあと、つなぐ前に付ける
+  skills?.attach(server);
 
   return server;
 }

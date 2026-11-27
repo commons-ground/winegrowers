@@ -3,6 +3,8 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // 置き直し・dev の前に、skills.json に書いた共有スキルを GitHub の正本から読んで src/skills.gen.ts に詰める（Skills over MCP）
+  "build": { "command": "node scripts/gen-skills.mjs" },
   // Discord で読み書きを許すチャンネル（名前のカンマ区切り）。その中のスレッドも使える
   "vars": { "DISCORD_CHANNELS": "一般,提案,議事録,スキルの相談,aiに聞く,ようこそ", "DISCORD_MEMBER_ROLE": "コモンズメンバー" },
   // 画面で入れた変数（DISCORD_GUILD_ID など）を deploy で消さない

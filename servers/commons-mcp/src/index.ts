@@ -8,6 +8,7 @@
 import { AuthorizationError, OAuthProvider } from "@cloudflare/workers-oauth-provider";
 import { createMcpHandler } from "agents/mcp/server";
 import { buildServer } from "./tools";
+import { skillCatalog } from "./skills";
 
 export interface Env {
   OAUTH_KV: KVNamespace;
@@ -220,8 +221,9 @@ const authHandler = {
 };
 
 const apiHandler = {
-  fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const props = ctx.props as Props | undefined;
+    const skills = await skillCatalog();
     const name = props?.name ?? "不明な参加者";
     let aiRoles: Record<string, string> = {};
     try {
@@ -233,7 +235,7 @@ const apiHandler = {
         channels: (env.DISCORD_CHANNELS ?? "").split(","),
         me: props?.discordId ? { userId: props.discordId, aiRoleId: aiRoles[props.discordId] } : undefined,
         aiRoleIds: Object.values(aiRoles),
-      }), { route: "/mcp" });
+      }, skills), { route: "/mcp" });
     return handler(req, env, ctx);
   },
 };
