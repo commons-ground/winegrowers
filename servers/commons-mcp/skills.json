@@ -1,0 +1,5 @@
+{
+  "//": "コネクタから配るスキル（Skills over MCP の試行）。正本は GitHub のプラグインのまま。置き直し（wrangler deploy）のときに、ここに書いたスキルを読んで Worker に詰める",
+  "ground": { "ref": "main", "skills": ["plugins/research/skills/knowledge-qa"] },
+  "winegrowers": { "skills": [] }
+}
